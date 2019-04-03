@@ -1,0 +1,48 @@
+version: "3"
+services:
+  web:
+    image: nginx:1.15.10-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./volumes/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./volumes/nginx/log:/var/log/nginx
+      - ./volumes/wordpress:/var/www/html/wordpress
+      - ./wp-content:/var/www/html/wordpress/wp-content
+    links:
+      - wordpress
+  wordpress:
+    build: .
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: root
+    volumes:
+      - ./volumes/wordpress:/var/www/html/wordpress
+      - ./wp-content:/var/www/html/wordpress/wp-content
+      - ./volumes/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      #- ./volumes/wordpress-config/wp-config.php:/var/www/html/wordpress/wp-config.php:ro
+      #- ./volumes/ingestion/wordpress:/ingestion
+    working_dir: /var/www/html/wordpress
+    links:
+      - db
+  db:
+    image: mariadb:10.4.3-bionic
+    ports:
+      - 3306:3306
+    volumes:
+      - ./volumes/mysql:/var/lib/mysql
+      - ./volumes/ingestion/mysql:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+      - db
+    ports:
+      - 8181:80
+    environment:
+      MYSQL_USERNAME: root
+      MYSQL_ROOT_PASSWORD: root
+      PMA_ARBITRARY: 1
